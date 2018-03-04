@@ -185,7 +185,7 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     # File de priorite
-    frontier = util.PriorityQueueWithFunction(lambda item: problem.getCostOfActions(item[1]) + heuristic())
+    frontier = util.PriorityQueueWithFunction(lambda item: problem.getCostOfActions(item[1]) + heuristic(item[0], problem))
     # On stocke la liste des actions directement dans la frontiere
     frontier.push((problem.getStartState(), []))
     explored = []
@@ -212,9 +212,11 @@ def aStarSearch(problem, heuristic=nullHeuristic):
                         frontier.heap.remove(frontierNode)
                     else:
                         alreadySeen = True
+
             for exploredNode in explored:
                 if successorState == exploredNode:
                     alreadySeen = True
+
             if not alreadySeen:
                 frontier.push((successorState, current[1] + [successor[1]]))
 
