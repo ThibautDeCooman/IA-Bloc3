@@ -141,28 +141,39 @@ def breadthFirstSearch(problem):
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
-    frontier = util.PriorityQueueWithFunction(problem.getCostOfActions)
+    # File de priorite
+    frontier = util.PriorityQueueWithFunction(lambda item: problem.getCostOfActions(item[1]))
     # On stocke la liste des actions directement dans la frontiere
     frontier.push((problem.getStartState(), []))
     explored = []
+
     while True:
         if frontier.isEmpty():
             raise Exception("Can't find the goal")
+
         current = frontier.pop()
         if problem.isGoalState(current[0]):
             return current[1]
+
         explored.append(current[0])
         for successor in problem.getSuccessors(current[0]):
             alreadySeen = False
             successorState = successor[0]
-            for frontierNode in frontier.list:
-                if successorState == frontierNode[0]:
-                    alreadySeen = True #TODO Check if we have a better cost
+            # On verifie si le noeud a deja ete vu
+            for frontierNode in frontier.heap:
+                # L'item est stocke dans la derniere partie du tuple dans la PriorityQueue
+                frontierItem = frontierNode[-1]
+                if successorState == frontierItem[0]:
+                    # Si on a un meilleur cout, on remplace le noeud
+                    if problem.getCostOfActions(frontierItem[1]) > problem.getCostOfActions(current[1] + [successor[1]]):
+                        frontier.heap.remove(frontierNode)
+                    else:
+                        alreadySeen = True
             for exploredNode in explored:
                 if successorState == exploredNode:
                     alreadySeen = True
             if not alreadySeen:
-                frontier.push((successor[0], current[1] + [successor[1]]))
+                frontier.push((successorState, current[1] + [successor[1]]))
 
 def nullHeuristic(state, problem=None):
     """
@@ -173,8 +184,39 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # File de priorite
+    frontier = util.PriorityQueueWithFunction(lambda item: problem.getCostOfActions(item[1]) + heuristic())
+    # On stocke la liste des actions directement dans la frontiere
+    frontier.push((problem.getStartState(), []))
+    explored = []
+
+    while True:
+        if frontier.isEmpty():
+            raise Exception("Can't find the goal")
+
+        current = frontier.pop()
+        if problem.isGoalState(current[0]):
+            return current[1]
+
+        explored.append(current[0])
+        for successor in problem.getSuccessors(current[0]):
+            alreadySeen = False
+            successorState = successor[0]
+            # On verifie si le noeud a deja ete vu
+            for frontierNode in frontier.heap:
+                # L'item est stocke dans la derniere partie du tuple dans la PriorityQueue
+                frontierItem = frontierNode[-1]
+                if successorState == frontierItem[0]:
+                    # Si on a un meilleur cout, on remplace le noeud
+                    if problem.getCostOfActions(frontierItem[1]) > problem.getCostOfActions(current[1] + [successor[1]]):
+                        frontier.heap.remove(frontierNode)
+                    else:
+                        alreadySeen = True
+            for exploredNode in explored:
+                if successorState == exploredNode:
+                    alreadySeen = True
+            if not alreadySeen:
+                frontier.push((successorState, current[1] + [successor[1]]))
 
 
 # Abbreviations
