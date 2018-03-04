@@ -99,13 +99,14 @@ def depthFirstSearch(problem):
             return current[1]
         explored.append(current[0])
         successors = problem.getSuccessors(current[0])
-        successors.sort()
         for successor in successors:
             alreadySeen = False
             successorState = successor[0]
+
+            # Comme on employe le DFS, on ajoute les noeuds une premiere fois. Mais il est possible que le noeud reaparaisse une autre fois, et qu'on l'explore cette fois-la plutot que la premiere fois. Il faut donc supprimer le premier noeud de la frontiere et le remettre dedans avec le nouveau chemin
             for frontierNode in frontier.list:
                 if successorState == frontierNode[0]:
-                    alreadySeen = True
+                    frontier.list.remove(frontierNode)
             for exploredNode in explored:
                 if successorState == exploredNode:
                     alreadySeen = True
