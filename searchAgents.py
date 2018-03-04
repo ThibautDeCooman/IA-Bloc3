@@ -40,6 +40,7 @@ from game import Actions
 import util
 import time
 import search
+import copy
 
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
@@ -293,16 +294,17 @@ class CornersProblem(search.SearchProblem):
         """
         Returns the start state (in your state space, not the full Pacman state
         space)
+            Starting Position
+            And a tuple of 4 boolean where every boolean represents whether a corner has been visited and eaten or not
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return (self.startingPosition, (False, False, False, False)) 
+        
 
     def isGoalState(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return state[1][0] and state[1][1] and state[1][2] and state[1][3]
 
     def getSuccessors(self, state):
         """
@@ -324,7 +326,17 @@ class CornersProblem(search.SearchProblem):
             #   nextx, nexty = int(x + dx), int(y + dy)
             #   hitsWall = self.walls[nextx][nexty]
 
-            "*** YOUR CODE HERE ***"
+            x,y = state[0]
+            dx, dy = Actions.directionToVector(action)            
+            nextx, nexty = int(x + dx), int(y + dy)
+            hitsWall = self.walls[nextx][nexty]
+            if not hitsWall:
+                corners = copy.deepcopy(state[1])
+                for i in range(len(corners)) :
+                    if (nextx, nexty) == self.corners[i]:
+                        corners = corners[:i] + (True,) + corners[i+1:]
+                successor = ((nextx, nexty), corners)
+                successors.append((successor, action, 1))
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
