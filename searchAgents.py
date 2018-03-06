@@ -438,32 +438,11 @@ class AStarFoodSearchAgent(SearchAgent):
 
 def distancesInMaze(position, problem, foodList):
     """
-    Compute the real distances between the given position and every cell in the maze
-    """
-    """
-    create vertex set Q
-
-      for each vertex v in Graph:             // Initialization
-          dist[v] = INFINITY                  // Unknown distance from source to v
-          prev[v] = UNDEFINED                 // Previous node in optimal path from source
-          add v to Q                          // All nodes initially in Q (unvisited nodes)
-
-      dist[source] = 0                        // Distance from source to source
-      
-      while Q is not empty:
-          u = vertex in Q with min dist[u]    // Node with the least distance
-                                                      // will be selected first
-          remove u from Q 
-          
-          for each neighbor v of u:           // where v is still in Q.
-              alt = dist[u] + length(u, v)
-              if alt < dist[v]:               // A shorter path to v has been found
-                  dist[v] = alt 
-                  prev[v] = u 
-
-      return dist[], prev[]
+    Compute the real distances between the given position and every cell in the maze.
+    Based on Dijkstra algorithm
     """
     Q = []
+    # On construit Q comme l'ensemble des cases qui ne sont pas des murs
     for x in range(problem.walls.width):
         for y in range(problem.walls.height):
             if not problem.walls[x][y]:
@@ -474,39 +453,44 @@ def distancesInMaze(position, problem, foodList):
     
     distances = []
     while len(Q) != 0:
-        # u is the node in Q with min u[1] (the minimum computed distance)
+        # On cherche u dans Q tel que u[1] est le minimum de l'ensemble
+        # C'est-a-dire qu'on cherche le noeud avec le plus petit cout cacule
         u = None
         i = 0
+        # D'abord, on cherche le premier noeud de Q dont le cout est different de 1
         while i < len(Q):
             if Q[i][1] != -1:
                 u = Q[i]
                 break
             i += 1
-
+        # Ensuite, on regarde s'il existe un meilleur noeud
         while i < len(Q):
             if Q[i][1] != -1 and Q[i][1] < u[1]:
                 u = Q[i]
                 break
             i += 1
 
+        # On retire de Q et on ajoute a la liste des noeuds completement calcules
         Q.remove(u)
-        if u[0] in foodList:
-            distances.append(u)
+        distances.append(u)
 
-        # For each neighbor of u
+        # Pour chaque voisin de u:
         for dx in range(-1, 2, 1):
             for dy in range(-1, 2, 1):
+                # On refuse les deplacements obliques (et de ne pas bouger)
                 if abs(dx) == abs(dy):
                     continue
                 x, y = u[0][0]+dx, u[0][1]+dy
                 if not problem.walls[x][y]:
                     i = 0
+                    # On cherche dans Q le noeud de coordonnes (x,y)
                     while i < len(Q):
                         if Q[i][0] == (x, y):
                             break
                         i += 1
                     if i == len(Q):
                         continue
+                    # On met a jour le cout du noeud si le nouveau cout est meilleur
                     alt = u[1] + 1
                     if alt < Q[i][1] or Q[i][1] == -1:
                         Q[i] = (Q[i][0], alt)
@@ -545,53 +529,69 @@ def foodHeuristic(state, problem):
     pacmanPosition, foodGrid = state
     foodList = foodGrid.asList()
 
+    # On precalcule toutes les distances reelles entre toutes les cases
+    # Comme les murs ne bougent pas, on fait ca juste une fois
+    # distances est un dictionnaire de dictionnaires de listes. Les cles de distances sont les coordonnes du noeud de depart. La liste contenue dans distances[x][y] est la liste des noeuds accessibles a partir de (x,y) et le cout pour s'y rendre a partir de (x,y)
     if not problem.heuristicInfo.has_key("distances"):
-        # We compute the distances between every food
-        distances = []
+        distances = {}
         for x in range(problem.walls.width):
-            distances_x = []
             for y in range(problem.walls.height):
                 if not problem.walls[x][y]:
-                    distances_from_x_y = distancesInMaze((x,y), problem, foodList)
-                    distances_x.append(sorted(distances_from_x_y, key=lambda tup: tup[1]))
-            distances.append(distances_x)
+                    if not distances.has_key(x):
+                        distances[x] = {}
+                    distances[x][y] = distancesInMaze((x,y), problem, foodList)
         problem.heuristicInfo["distances"] = distances
 
     distances = problem.heuristicInfo["distances"]
+    # Pour faciliter l'ecriture
+    x, y = pacmanPosition[0], pacmanPosition[1]
 
     if len(foodList) == 0:
-        # We have eaten everything
+        # Tout a ete mange => on a un etat de but
         return 0
     elif len(foodList) == 1:
-        # We find the last food and the distance PacMan must travel
+        # On cherche la derniere nourriture
+        # Et on retourne la distance pour s'y rendre
         fromFood = distances[foodList[0][0]][foodList[0][1]]
         for node in fromFood:
-            if node[0][0] == pacmanPosition[0] and node[0][1] == pacmanPosition[1]:
+            if node[0][0] == x and node[0][1] == y:
                 return node[1]
 
-    # We have at least two foods:
+    # Dans le cas ou on a plus de 2 nourritures restantes:
+    # On cherche les 2 nourritures les plus eloignees l'une de l'autre
+    # Notons dist_eloignees la distance qui separe ces deux noeuds
+    # Remarquons que quoi qu'il arrive, cette distance devra au moins etre parcourue
+    # Notons dist_pacman la distance qui separe PacMan de la plus proche des deux nourritures trouvees
+    # On veut limiter le nombre de deplacements inutiles. On vise donc la plus proche nourriture parmi les 2 qui sont les plus eloignees l'une de l'autre
+    # L'heuristique est la somme des deux distances
 
-    # We take the two foods that are the most distant
+    # On recherche les 2 nourritures les plus eloignees l'une de l'autre
     furthestNodes = []
     for food in foodList:
-        furthest = distances[food[0]][food[1]][-1]
+        furthest = (None,None)
+        for node in distances[food[0]][food[1]]:
+            # On verifie si le noeud contient bien une nourriture
+            if node[0] in foodList:
+                if furthest == (None,None) or node[1] > furthest[1]:
+                    furthest = node
+
         if len(furthestNodes) == 0:
             furthestNodes.append((food, 0))
             furthestNodes.append(furthest)
         elif furthest[1] > furthestNodes[1][1]:
             furthestNodes[0] = (food, 0)
             furthestNodes[1] = furthest
+    
+    # On cherche quelle case parmi furthestNodes est la plus proche de la position de PacMan
+    distances_from_pacman = distances[x][y]
+    closest = (None,None)
+    for node in distances_from_pacman:
+        if node[0] == furthestNodes[0][0] or node[0] == furthestNodes[1][0]:
+            if closest == (None,None) or node[1] < closest[1]:
+                closest = node
 
-    # We take the length of the path to the closest of the two foods
-    # TODO
-
-    #res = sortedMaze[-1][1]
-    #if len(sortedMaze) > 1:
-    #    res += sortedMaze[-2][1]
-    #return res
-    #return len(foodGrid.asList())
-    #return sum(map(lambda food: util.manhattanDistance(food, position), foodGrid.asList())) -> Non
-    #return sum(map(lambda food: util.manhattanDistance(food, position), foodGrid.asList())) * len(foodGrid.asList())
+    # On retourne la somme des 2 distances
+    return closest[1] + furthestNodes[1][1]
     
 
 class ClosestDotSearchAgent(SearchAgent):
