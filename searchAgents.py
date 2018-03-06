@@ -436,6 +436,84 @@ class AStarFoodSearchAgent(SearchAgent):
         self.searchFunction = lambda prob: search.aStarSearch(prob, foodHeuristic)
         self.searchType = FoodSearchProblem
 
+def distancesInMaze(position, problem, foodList):
+    """
+    Compute the real distances between the given position and every cell in the maze
+    """
+    """
+    create vertex set Q
+
+      for each vertex v in Graph:             // Initialization
+          dist[v] = INFINITY                  // Unknown distance from source to v
+          prev[v] = UNDEFINED                 // Previous node in optimal path from source
+          add v to Q                          // All nodes initially in Q (unvisited nodes)
+
+      dist[source] = 0                        // Distance from source to source
+      
+      while Q is not empty:
+          u = vertex in Q with min dist[u]    // Node with the least distance
+                                                      // will be selected first
+          remove u from Q 
+          
+          for each neighbor v of u:           // where v is still in Q.
+              alt = dist[u] + length(u, v)
+              if alt < dist[v]:               // A shorter path to v has been found
+                  dist[v] = alt 
+                  prev[v] = u 
+
+      return dist[], prev[]
+    """
+    Q = []
+    for x in range(problem.walls.width):
+        for y in range(problem.walls.height):
+            if not problem.walls[x][y]:
+                if position[0] == x and position[1] == y:
+                    Q.append(((x, y), 0))
+                else:
+                    Q.append(((x,y), -1))       # "-1 is infinity"
+    
+    distances = []
+    while len(Q) != 0:
+        # u is the node in Q with min u[1] (the minimum computed distance)
+        u = None
+        i = 0
+        while i < len(Q):
+            if Q[i][1] != -1:
+                u = Q[i]
+                break
+            i += 1
+
+        while i < len(Q):
+            if Q[i][1] != -1 and Q[i][1] < u[1]:
+                u = Q[i]
+                break
+            i += 1
+
+        Q.remove(u)
+        if u[0] in foodList:
+            distances.append(u)
+
+        # For each neighbor of u
+        for dx in range(-1, 2, 1):
+            for dy in range(-1, 2, 1):
+                if abs(dx) == abs(dy):
+                    continue
+                x, y = u[0][0]+dx, u[0][1]+dy
+                if not problem.walls[x][y]:
+                    i = 0
+                    while i < len(Q):
+                        if Q[i][0] == (x, y):
+                            break
+                        i += 1
+                    if i == len(Q):
+                        continue
+                    alt = u[1] + 1
+                    if alt < Q[i][1] or Q[i][1] == -1:
+                        Q[i] = (Q[i][0], alt)
+    
+    return distances
+
+
 def foodHeuristic(state, problem):
     """
     Your heuristic for the FoodSearchProblem goes here.
@@ -464,9 +542,57 @@ def foodHeuristic(state, problem):
     Subsequent calls to this heuristic can access
     problem.heuristicInfo['wallCount']
     """
-    position, foodGrid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+    pacmanPosition, foodGrid = state
+    foodList = foodGrid.asList()
+
+    if not problem.heuristicInfo.has_key("distances"):
+        # We compute the distances between every food
+        distances = []
+        for x in range(problem.walls.width):
+            distances_x = []
+            for y in range(problem.walls.height):
+                if not problem.walls[x][y]:
+                    distances_from_x_y = distancesInMaze((x,y), problem, foodList)
+                    distances_x.append(sorted(distances_from_x_y, key=lambda tup: tup[1]))
+            distances.append(distances_x)
+        problem.heuristicInfo["distances"] = distances
+
+    distances = problem.heuristicInfo["distances"]
+
+    if len(foodList) == 0:
+        # We have eaten everything
+        return 0
+    elif len(foodList) == 1:
+        # We find the last food and the distance PacMan must travel
+        fromFood = distances[foodList[0][0]][foodList[0][1]]
+        for node in fromFood:
+            if node[0][0] == pacmanPosition[0] and node[0][1] == pacmanPosition[1]:
+                return node[1]
+
+    # We have at least two foods:
+
+    # We take the two foods that are the most distant
+    furthestNodes = []
+    for food in foodList:
+        furthest = distances[food[0]][food[1]][-1]
+        if len(furthestNodes) == 0:
+            furthestNodes.append((food, 0))
+            furthestNodes.append(furthest)
+        elif furthest[1] > furthestNodes[1][1]:
+            furthestNodes[0] = (food, 0)
+            furthestNodes[1] = furthest
+
+    # We take the length of the path to the closest of the two foods
+    # TODO
+
+    #res = sortedMaze[-1][1]
+    #if len(sortedMaze) > 1:
+    #    res += sortedMaze[-2][1]
+    #return res
+    #return len(foodGrid.asList())
+    #return sum(map(lambda food: util.manhattanDistance(food, position), foodGrid.asList())) -> Non
+    #return sum(map(lambda food: util.manhattanDistance(food, position), foodGrid.asList())) * len(foodGrid.asList())
+    
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
