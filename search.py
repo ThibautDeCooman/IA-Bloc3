@@ -169,9 +169,8 @@ def uniformCostSearch(problem):
                         frontier.heap.remove(frontierNode)
                     else:
                         alreadySeen = True
-            for exploredNode in explored:
-                if successorState == exploredNode:
-                    alreadySeen = True
+            if successorState in explored:
+                alreadySeen = True
             if not alreadySeen:
                 frontier.push((successorState, current[1] + [successor[1]]))
 
@@ -213,9 +212,8 @@ def aStarSearch(problem, heuristic=nullHeuristic):
                     else:
                         alreadySeen = True
 
-            for exploredNode in explored:
-                if successorState == exploredNode:
-                    alreadySeen = True
+            if successorState in explored:
+                alreadySeen = True
 
             if not alreadySeen:
                 frontier.push((successorState, current[1] + [successor[1]]))

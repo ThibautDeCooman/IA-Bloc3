@@ -289,12 +289,13 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
+        # Rien a ajouter
 
     def getStartState(self):
         """
         Returns the start state (in your state space, not the full Pacman state
         space)
-            Starting Position
+            The current Pacman's Position
             And a tuple of 4 boolean where every boolean represents whether a corner has been visited and eaten or not
         """
         return (self.startingPosition, (False, False, False, False)) 
@@ -332,6 +333,7 @@ class CornersProblem(search.SearchProblem):
             hitsWall = self.walls[nextx][nexty]
             if not hitsWall:
                 corners = copy.deepcopy(state[1])
+                # Si on est sur un coin, on change la valeur correspondante a True dans le tuple
                 for i in range(len(corners)) :
                     if (nextx, nexty) == self.corners[i]:
                         corners = corners[:i] + (True,) + corners[i+1:]
@@ -369,10 +371,17 @@ def cornersHeuristic(state, problem):
     admissible (as well as consistent).
     """
     corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
+    pacman, visited = state
 
-    "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    # On calcule la distance de Manhattan entre Pac-Man et le coin le plus eloigne
+    furthest = 0
+    for i in range(4):
+        if not visited[i]:
+            temp = util.manhattanDistance(corners[i], pacman)
+            if (furthest == 0) or furthest < temp:
+               furthest = temp
+
+    return furthest
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -531,7 +540,7 @@ def foodHeuristic(state, problem):
 
     # On precalcule toutes les distances reelles entre toutes les cases
     # Comme les murs ne bougent pas, on fait ca juste une fois
-    # distances est un dictionnaire de dictionnaires de listes. Les cles de distances sont les coordonnes du noeud de depart. La liste contenue dans distances[x][y] est la liste des noeuds accessibles a partir de (x,y) et le cout pour s'y rendre a partir de (x,y)
+    # distances est un dictionnaire de dictionnaires de listes. Les cles de distances sont les coordonnees du noeud de depart. La liste contenue dans distances[x][y] est la liste des noeuds accessibles a partir de (x,y) et le cout pour s'y rendre
     if not problem.heuristicInfo.has_key("distances"):
         distances = {}
         for x in range(problem.walls.width):
@@ -562,8 +571,8 @@ def foodHeuristic(state, problem):
     # Notons dist_eloignees la distance qui separe ces deux noeuds
     # Remarquons que quoi qu'il arrive, cette distance devra au moins etre parcourue
     # Notons dist_pacman la distance qui separe PacMan de la plus proche des deux nourritures trouvees
-    # On veut limiter le nombre de deplacements inutiles. On vise donc la plus proche nourriture parmi les 2 qui sont les plus eloignees l'une de l'autre
-    # L'heuristique est la somme des deux distances
+    # On veut limiter le nombre de deplacements inutiles. On vise donc la plus proche nourriture parmi les 2 qui sont les plus eloignees l'une de l'autre.
+    # L'heuristique retourne la somme de dist_eloignees et dist_pacman
 
     # On recherche les 2 nourritures les plus eloignees l'une de l'autre
     furthestNodes = []
@@ -617,9 +626,6 @@ class ClosestDotSearchAgent(SearchAgent):
         gameState.
         """
         # Here are some useful elements of the startState
-        startPosition = gameState.getPacmanPosition()
-        food = gameState.getFood()
-        walls = gameState.getWalls()
         problem = AnyFoodSearchProblem(gameState)
 
         return search.bfs(problem)
