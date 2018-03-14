@@ -1,0 +1,4 @@
+Bayes : p(x|y) = p(y|x)p(x)/p(y)
+Thm proba totales : p(x) = sum_y p(x|y)p(y)
+indépendance ssi p(x|y) = p(x)
+
