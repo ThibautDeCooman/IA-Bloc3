@@ -149,18 +149,16 @@ class ExactInference(InferenceModule):
         pacmanPosition = gameState.getPacmanPosition()
 
         "*** YOUR CODE HERE ***"
-
-        # Replace this code with a correct observation update
-        # Be sure to handle the "jail" edge case where the ghost is eaten
-        # and noisyDistance is None
         allPossible = util.Counter()
 
+        # En prison
         if noisyDistance == None:
             for p in self.legalPositions:
                 allPossible[p] = 0
             allPossible[self.getJailPosition()] = 1
         else:
             for p in self.legalPositions:
+                # Pour chaque position possible, on regarde la probabilite prealablement calculee et on la multiplie par la distribution donnee par le senseur
                 trueDistance = util.manhattanDistance(p, pacmanPosition)
                 if emissionModel[trueDistance] > 0:
                     allPossible[p] = emissionModel[trueDistance] * self.beliefs[p]
@@ -227,8 +225,10 @@ class ExactInference(InferenceModule):
         allPossible = util.Counter()
 
         for oldPos in self.legalPositions:
+            # On recupere la distribution sur la position du fantome
             newPosDist = self.getPositionDistribution(self.setGhostPosition(gameState, oldPos))
 
+            # Pour chaque case possible, on multiplie par la probabilite qu'il etait sur la case de depart
             for newPos, prob in newPosDist.items():
                 allPossible[newPos] += prob * self.beliefs[oldPos]
 
@@ -267,10 +267,11 @@ class ParticleFilter(InferenceModule):
         Storing your particles as a Counter (where there could be an associated
         weight with each position) is incorrect and may produce errors.
         """
+        self.particles = []
         i = 0
-        self.particles = util.Counter()
+        # On remplit les particules position par position pour etre sur d'avoir une distribution uniforme
         for _ in range(self.numParticles):
-            self.particles[self.legalPositions[i]] += 1
+            self.particles.append(self.legalPositions[i])
             i = (i + 1) % len(self.legalPositions)
 
     def observe(self, observation, gameState):
@@ -305,22 +306,20 @@ class ParticleFilter(InferenceModule):
         pacmanPosition = gameState.getPacmanPosition()
         "*** YOUR CODE HERE ***"
 
-        beliefs = self.getBeliefDistribution()
         # En prison
         if noisyDistance == None:
-            for position in self.legalPositions:
-                self.particles[position] = 0
-            self.particles[self.getJailPosition()] = self.numParticles
+            for i in range(self.numParticles):
+                self.particles[i] = self.getJailPosition()
         else:
-            particlesBar = []
-            for _ in range(self.numParticles):
-                x = util.sample(beliefs)
-                particlesBar.append(x)
-
-           # for p in self.legalPositions:
-           #     trueDistance = util.manhattanDistance(p, pacmanPosition)
-           #     if emissionModel[trueDistance] > 0:
-           #         allPossible[p] = emissionModel[trueDistance] * self.beliefs[p]
+            # On genere les poids grace a emissionModel
+            weights = [emissionModel[util.manhattanDistance(p, pacmanPosition)] for p in self.particles]
+                    
+            # Si tous les poids sont 0, on recommence a zero
+            if all(w == 0 for w in weights):
+                self.initializeUniformly(gameState)
+            else:
+                # Sinon, on tire des particules aleatoirement en fonction de leur poids (plus haut poids = plus de chances d'etre tiree)
+                self.particles = util.nSample(weights, self.particles, self.numParticles)
         
 
     def elapseTime(self, gameState):
@@ -338,7 +337,12 @@ class ParticleFilter(InferenceModule):
         a belief distribution.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        particles = []
+        for oldPos in self.particles:
+            # Pour chaque case ou on pense que le fantome etait avant, on emploie la distribution sur les mouvements du fantome pour avoir une idee de la ou il est maintenant
+            newPosDist = self.getPositionDistribution(self.setGhostPosition(gameState, oldPos))
+            particles.append(util.sample(newPosDist))
+        self.particles = particles
 
     def getBeliefDistribution(self):
         """
@@ -350,8 +354,9 @@ class ParticleFilter(InferenceModule):
         "*** YOUR CODE HERE ***"
         beliefs = util.Counter()
 
-        for pos, part in self.particles.items():
-            beliefs[pos] = float(part)/self.numParticles
+        # On compte le nombre de fois que la position apparait
+        for i in range(self.numParticles):
+            beliefs[self.particles[i]] += 1
 
         beliefs.normalize()
         return beliefs

@@ -166,11 +166,14 @@ class GreedyBustersAgent(BustersAgent):
         targetPos, targetDist = None, None
 
         for ghost in livingGhostPositionDistributions:
+            # On recupere la position avec la plus haute probabilite pour ce fantome
             highestPosition = max(ghost, key=ghost.get)
             distance = self.distancer.getDistance(pacmanPosition, highestPosition)
+            # On retient la position la plus proche parmi tous les fantomes
             if targetPos == None or targetDist == None or distance < targetDist:
                 targetPos, targetDist = highestPosition, distance
 
+        # On cherche la meilleure action a effectuer pour se rapprocher de la meilleure position
         bestAction, distanceAction = None, None
         for action in legal:
             distance = self.distancer.getDistance(Actions.getSuccessor(pacmanPosition, action), targetPos)
