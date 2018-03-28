@@ -161,8 +161,8 @@ class MinimaxAgent(MultiAgentSearchAgent):
                 
         return bestAction
         
-    def terminal_test(self, state):
-        return state.isWin()
+    def terminal_test(self, state, depth):
+        return state.isWin() or state.isLose() or depth >= self.depth
         
     def utility(self, state):
         return self.evaluationFunction(state)
@@ -171,7 +171,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         return state.generateSuccessor(agentIndex, action)
         
     def max_value(self, state, depth):
-        if self.terminal_test(state) or depth >= self.depth:
+        if self.terminal_test(state, depth):
             return self.utility(state)
         
         v = -float("inf")
@@ -183,7 +183,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         return v
         
     def min_value(self, state, depth, ghostIndex):
-        if self.terminal_test(state):
+        if self.terminal_test(state, depth):
             return self.utility(state)
             
         v = float("inf")
