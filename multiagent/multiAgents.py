@@ -74,8 +74,6 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        capsules = successorGameState.getCapsules()
-        
         score = successorGameState.getScore()
         
         #Gagner est excellent
@@ -292,7 +290,39 @@ def betterEvaluationFunction(currentGameState):
       DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    newPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    newGhostStates = currentGameState.getGhostStates()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+
+    "*** YOUR CODE HERE ***"
+    score = currentGameState.getScore()
+    
+    #Gagner est excellent
+    if currentGameState.isWin():
+        return 999999999
+        
+    #Distance avec chaque nourriture, on retient la plus proche
+    foodDistances = [manhattanDistance(x, newPos) for x in newFood.asList()]
+    closestFood = min(foodDistances)
+    
+    score += 1./closestFood
+    score += 10
+    
+    #On calcule la distance avec les fantomes et on s'arrange pour toujours etre a une certaine distance (ici 1) d'eux
+    ghostDistances = [manhattanDistance(newPos, newGhostStates[ghost].getPosition()) for ghost in range(len(newGhostStates))]
+    for distance in ghostDistances:
+        if distance <= 1:
+            score -= 10
+    
+    capsules = currentGameState.getCapsules()
+
+    if len(capsules) > 0:
+        capsulesDistances = [manhattanDistance(newPos, capsule) for capsule in capsules]
+        closestCapsule = min(capsulesDistances)
+        score += 1./closestCapsule * 8
+
+    return score
 
 # Abbreviation
 better = betterEvaluationFunction
