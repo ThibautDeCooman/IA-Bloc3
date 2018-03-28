@@ -209,7 +209,65 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        alpha = -float("inf")
+        beta = float("inf")
+        bestAction = None
+        bestCost = -float("inf")
+        for action in gameState.getLegalActions(0):
+            newState = self.result(gameState, action, 0)
+            cost = self.min_value(newState, 0, 1, alpha, beta)
+            if cost > bestCost:
+                bestCost = cost
+                bestAction = action
+            alpha = max(alpha, cost)
+                
+        return bestAction
+        
+    def terminal_test(self, state, depth):
+        return state.isWin() or state.isLose() or depth >= self.depth
+        
+    def utility(self, state):
+        return self.evaluationFunction(state)
+        
+    def result(self, state, action, agentIndex):
+        return state.generateSuccessor(agentIndex, action)
+        
+    def max_value(self, state, depth, alpha, beta):
+        if self.terminal_test(state, depth):
+            return self.utility(state)
+        
+        v = -float("inf")
+        # Pour chaque action de Pacman
+        for action in state.getLegalActions(0):
+            newState = self.result(state, action, 0)
+            # On lance sur le premier fantome
+            v = max(v, self.min_value(newState, depth, 1, alpha, beta))
+            if v >= beta:
+                return v
+            alpha = max(alpha, v)
+            
+        return v
+        
+    def min_value(self, state, depth, ghostIndex, alpha, beta):
+        if self.terminal_test(state, depth):
+            return self.utility(state)
+            
+        v = float("inf")
+        for action in state.getLegalActions(ghostIndex):
+            newState = self.result(state, action, ghostIndex)
+            
+            if ghostIndex < state.getNumAgents() - 1:
+                # On passe au fantome suivant
+                v = min(v, self.min_value(newState, depth, ghostIndex+1, alpha, beta))
+            else:
+                # On passe a Pacman
+                v = min(v, self.max_value(newState, depth + 1, alpha, beta))
+
+            if v <= alpha:
+                return v
+            beta = min(beta, v)
+            
+        return v
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
