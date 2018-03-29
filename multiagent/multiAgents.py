@@ -148,6 +148,9 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
+        # On a implemente le minimax tel que vu en cours
+
+        # On cherche la meilleure action possible
         bestAction = None
         bestCost = -float("inf")
         for action in gameState.getLegalActions(0):
@@ -160,18 +163,28 @@ class MinimaxAgent(MultiAgentSearchAgent):
         return bestAction
         
     def terminal_test(self, state, depth):
+        """
+        Teste si la recursion doit s'arreter
+        """
         return state.isWin() or state.isLose() or depth >= self.depth
         
     def utility(self, state):
+        """
+        Donne le cout d'utilite de l'etat
+        """
         return self.evaluationFunction(state)
         
     def result(self, state, action, agentIndex):
+        """
+        Donne le resultat de l'action par l'agent agentIndex par rapport au state donne
+        """
         return state.generateSuccessor(agentIndex, action)
         
     def max_value(self, state, depth):
         if self.terminal_test(state, depth):
             return self.utility(state)
         
+        # On retient la plus grande valeur calculee
         v = -float("inf")
         # Pour chaque action de Pacman
         for action in state.getLegalActions(0):
@@ -184,6 +197,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         if self.terminal_test(state, depth):
             return self.utility(state)
             
+        # On retient la plus petite valeur calculee
         v = float("inf")
         for action in state.getLegalActions(ghostIndex):
             newState = self.result(state, action, ghostIndex)
@@ -207,6 +221,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
+        # Idem que pour le MinimaxAgent, sauf qu'on a rajoute l'elagage alpha-beta
         alpha = -float("inf")
         beta = float("inf")
         bestAction = None
@@ -235,11 +250,10 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             return self.utility(state)
         
         v = -float("inf")
-        # Pour chaque action de Pacman
         for action in state.getLegalActions(0):
             newState = self.result(state, action, 0)
-            # On lance sur le premier fantome
             v = max(v, self.min_value(newState, depth, 1, alpha, beta))
+            # On elague
             if v > beta:
                 return v
             alpha = max(alpha, v)
@@ -255,12 +269,11 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             newState = self.result(state, action, ghostIndex)
             
             if ghostIndex < state.getNumAgents() - 1:
-                # On passe au fantome suivant
                 v = min(v, self.min_value(newState, depth, ghostIndex+1, alpha, beta))
             else:
-                # On passe a Pacman
                 v = min(v, self.max_value(newState, depth + 1, alpha, beta))
 
+            # On elague
             if v < alpha:
                 return v
             beta = min(beta, v)
@@ -280,6 +293,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
+        # Idem que pour le MinimaxAgent, sauf que les fantomes ne bougent plus directement
         bestAction = None
         bestCost = -float("inf")
         for action in gameState.getLegalActions(0):
@@ -305,10 +319,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             return self.utility(state)
         
         v = -float("inf")
-        # Pour chaque action de Pacman
         for action in state.getLegalActions(0):
             newState = self.result(state, action, 0)
-            # On lance sur le premier fantome
             v = max(v, self.chance_value(newState, depth, 1))
         return v
         
@@ -316,17 +328,18 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         if self.terminal_test(state, depth):
             return self.utility(state)
             
+        # Comme les noeuds de chance generent les deplacements, les fantomes ne font que passer la main au prochain agent
         if ghostIndex < state.getNumAgents() - 1:
-            # On passe au fantome suivant
             return self.chance_value(state, depth, ghostIndex+1)
         else:
-            # On passe a Pacman
             return self.max_value(state, depth + 1)
 
     def chance_value(self, state, depth, ghostIndex):
-        if len(state.getLegalActions(ghostIndex)) == 0:
+        if len(state.getLegalActions(ghostIndex)) == 0 or self.terminal_test(state, depth):
+            # Si le fantome ne peut plus bouger, on arrete la recursion
             return self.utility(state)
 
+        # On retourne la valeur moyenne des resultats des actions du fantome ghostIndex
         value = 0
         for action in state.getLegalActions(ghostIndex):
             newState = self.result(state, action, ghostIndex)
@@ -340,7 +353,8 @@ def betterEvaluationFunction(currentGameState):
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
+      DESCRIPTION:
+        On force Pacman a manger les fantomes s'il peut, on evite les fantomes sinon et on pousse pacman a manger toute la nourriture
     """
     "*** YOUR CODE HERE ***"
     newPos = currentGameState.getPacmanPosition()
