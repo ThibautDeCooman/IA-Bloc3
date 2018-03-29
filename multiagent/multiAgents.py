@@ -240,7 +240,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             newState = self.result(state, action, 0)
             # On lance sur le premier fantome
             v = max(v, self.min_value(newState, depth, 1, alpha, beta))
-            if v >= beta:
+            if v > beta:
                 return v
             alpha = max(alpha, v)
             
@@ -261,7 +261,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 # On passe a Pacman
                 v = min(v, self.max_value(newState, depth + 1, alpha, beta))
 
-            if v <= alpha:
+            if v < alpha:
                 return v
             beta = min(beta, v)
             
@@ -351,29 +351,27 @@ def betterEvaluationFunction(currentGameState):
     "*** YOUR CODE HERE ***"
     score = currentGameState.getScore()
     
-    #Gagner est excellent
+    # Gagner est excellent
     if currentGameState.isWin():
         return 999999999
         
-    #Distance avec chaque nourriture, on retient la plus proche
+    # Distance avec chaque nourriture, on retient la plus proche
     foodDistances = [manhattanDistance(x, newPos) for x in newFood.asList()]
     closestFood = min(foodDistances)
     
-    score += 1./closestFood
-    score += 10
+    # On donne une assez bonne importance a manger
+    score += 1./closestFood * 5
     
-    #On calcule la distance avec les fantomes et on s'arrange pour toujours etre a une certaine distance (ici 1) d'eux
+    # On calcule la distance avec les fantomes
     ghostDistances = [manhattanDistance(newPos, newGhostStates[ghost].getPosition()) for ghost in range(len(newGhostStates))]
-    for distance in ghostDistances:
-        if distance <= 1:
+    for i in range(len(ghostDistances)):
+        distance = ghostDistances[i]
+        # Si on pense qu'on peut manger le fantome, on force Pacman a se rendre vers le fantome
+        if newScaredTimes[i] >= distance:
+            score += 1./(distance+1) * 100
+        # Sinon, on fuit le fantome
+        elif distance <= 5:
             score -= 10
-    
-    capsules = currentGameState.getCapsules()
-
-    if len(capsules) > 0:
-        capsulesDistances = [manhattanDistance(newPos, capsule) for capsule in capsules]
-        closestCapsule = min(capsulesDistances)
-        score += 1./closestCapsule * 8
 
     return score
 
