@@ -280,7 +280,60 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        bestAction = None
+        bestCost = -float("inf")
+        for action in gameState.getLegalActions(0):
+            newState = self.result(gameState, action, 0)
+            cost = self.chance_value(newState, 0, 1)
+            if cost > bestCost:
+                bestCost = cost
+                bestAction = action
+                
+        return bestAction
+        
+    def terminal_test(self, state, depth):
+        return state.isWin() or state.isLose() or depth >= self.depth
+        
+    def utility(self, state):
+        return self.evaluationFunction(state)
+        
+    def result(self, state, action, agentIndex):
+        return state.generateSuccessor(agentIndex, action)
+        
+    def max_value(self, state, depth):
+        if self.terminal_test(state, depth):
+            return self.utility(state)
+        
+        v = -float("inf")
+        # Pour chaque action de Pacman
+        for action in state.getLegalActions(0):
+            newState = self.result(state, action, 0)
+            # On lance sur le premier fantome
+            v = max(v, self.chance_value(newState, depth, 1))
+        return v
+        
+    def min_value(self, state, depth, ghostIndex):
+        if self.terminal_test(state, depth):
+            return self.utility(state)
+            
+        if ghostIndex < state.getNumAgents() - 1:
+            # On passe au fantome suivant
+            return self.chance_value(state, depth, ghostIndex+1)
+        else:
+            # On passe a Pacman
+            return self.max_value(state, depth + 1)
+
+    def chance_value(self, state, depth, ghostIndex):
+        if len(state.getLegalActions(ghostIndex)) == 0:
+            return self.utility(state)
+
+        value = 0
+        for action in state.getLegalActions(ghostIndex):
+            newState = self.result(state, action, ghostIndex)
+            value += self.min_value(newState, depth, ghostIndex)
+
+        value /= float(len(state.getLegalActions(ghostIndex)))
+        return value
 
 def betterEvaluationFunction(currentGameState):
     """
